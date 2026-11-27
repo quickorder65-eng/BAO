@@ -1,0 +1,745 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>БАО: причины и следствия</title>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* VOICE: кинематографичный, но учебный — короткие крупные фразы, логика «причина → процесс → следствие»
+   IDEA: экспедиция вниз-вверх по склону: камера путешествует по реальному рельефу БАО
+   PICTURE: полноэкранная 3D-сцена (реальный рельеф + снимок Sentinel-2), которая сама показывает процессы
+   COLOUR and TYPE: бирюза ледниковой воды #3fd0c4, глубокий синий #0b1a26, снег; Manrope 800/600
+   LAYOUT: сцена на весь экран, стеклянная панель слева, прогресс справа, слайды по прокрутке */
+:root{--ink:#eef6f7;--mut:#b7cad1;--tq:#3fd0c4;--deep:#0b1a26;--glass:rgba(8,20,30,.66);--warm:#ffc76b}
+*{box-sizing:border-box;min-width:0}
+html{scroll-snap-type:y proximity;scroll-behavior:smooth}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+body{margin:0;background:var(--deep);color:var(--ink);font:400 clamp(17px,1.25vw,24px)/1.45 Manrope,system-ui,sans-serif;overflow-x:hidden}
+#gl{position:fixed;inset:0;z-index:0}
+#gl canvas{display:block;width:100%;height:100%;touch-action:pan-y}
+#shade{position:fixed;inset:0;z-index:1;pointer-events:none;background:linear-gradient(90deg,rgba(6,16,24,.72) 0%,rgba(6,16,24,.25) 42%,rgba(6,16,24,0) 60%);transition:opacity .8s}
+main{position:relative;z-index:2;pointer-events:none}
+section{min-height:100vh;scroll-snap-align:start;padding:clamp(20px,4vh,56px) clamp(20px,4vw,72px);display:flex;align-items:center}
+section.tall{min-height:320vh;align-items:flex-start}
+.stick{position:sticky;top:0;min-height:100vh;display:flex;align-items:center;width:100%}
+.panel{pointer-events:auto;background:var(--glass);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-radius:22px;padding:clamp(20px,2.4vw,40px);max-width:min(760px,100%);box-shadow:0 20px 60px rgba(0,0,0,.35);opacity:0;transform:translateY(30px);transition:opacity .9s,transform .9s}
+section.on .panel{opacity:1;transform:none}
+.num{font-size:.8em;color:var(--tq);font-weight:700;margin:0 0 6px}
+h1,h2{font-weight:800;line-height:1.05;margin:0 0 .45em;text-wrap:balance;letter-spacing:-.01em}
+h1{font-size:clamp(40px,5.2vw,92px)}
+h2{font-size:clamp(30px,3vw,58px)}
+h3{font-size:1.05em;margin:0 0 .3em;font-weight:800}
+p{margin:0 0 .7em}
+.lead{font-size:1.15em;color:var(--mut)}
+.chain{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0}
+.chain span{background:rgba(63,208,196,.14);border:1px solid rgba(63,208,196,.45);padding:6px 12px;border-radius:999px;font-weight:700;font-size:.85em}
+.chain i{font-style:normal;color:var(--tq);align-self:center}
+.cpe{display:grid;gap:10px;margin:12px 0}
+.row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.row>div{background:rgba(255,255,255,.06);border-radius:12px;padding:10px 12px;font-size:.82em;line-height:1.35}
+.row b{display:block;font-size:.78em;color:var(--tq);margin-bottom:2px}
+.row>div:nth-child(2) b{color:var(--warm)}.row>div:nth-child(3) b{color:#9fd4ff}
+.note{font-size:.7em;color:var(--mut);margin-top:10px}
+.big{font-size:clamp(34px,3vw,56px);font-weight:800;color:var(--tq);line-height:1}
+.facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:12px 0}
+.facts div{background:rgba(255,255,255,.06);border-radius:12px;padding:10px 12px;font-size:.78em}
+button,.btn{font:inherit;font-size:.82em;font-weight:700;min-height:44px;padding:0 16px;border-radius:12px;border:1px solid rgba(255,255,255,.25);background:rgba(255,255,255,.08);color:var(--ink);cursor:pointer;pointer-events:auto}
+button:hover{background:rgba(255,255,255,.16)}button.act{background:var(--tq);color:#06211f;border-color:var(--tq)}
+button:focus-visible,input:focus-visible,a:focus-visible{outline:3px solid var(--warm);outline-offset:2px}
+.btns{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+a{color:var(--tq)}
+/* photo slots */
+figure.ph{margin:12px 0 0;max-height:17vh;border-radius:14px;overflow:hidden;background:repeating-linear-gradient(135deg,rgba(255,255,255,.05) 0 12px,rgba(255,255,255,.02) 12px 24px);border:1.5px dashed rgba(255,255,255,.3);aspect-ratio:16/6;display:grid;place-items:center;position:relative}
+figure.ph img{width:100%;height:100%;object-fit:cover;display:block}
+figure.ph figcaption{font-size:.68em;color:var(--mut);padding:10px;text-align:center}
+figure.ph.has{border:0}figure.ph.has figcaption{position:absolute;left:0;right:0;bottom:0;background:linear-gradient(transparent,rgba(0,0,0,.7));color:#fff;text-align:left}
+/* legend */
+.legend{display:flex;align-items:center;gap:10px;font-size:.72em;margin-top:10px}
+.bar{height:12px;flex:1;border-radius:6px;background:linear-gradient(90deg,#3b55e0,#8cc7ff,#ffe07a,#f05a28)}
+/* month slider */
+.mon{margin-top:12px}
+.mon input{width:100%;accent-color:var(--tq);height:32px}
+.mon .lab{display:flex;justify-content:space-between;font-size:.65em;color:var(--mut)}
+.readout{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:8px}
+.readout div{background:rgba(255,255,255,.06);border-radius:10px;padding:8px 10px;font-size:.75em}
+.readout b{display:block;font-size:1.3em;color:var(--tq)}
+/* soil 3D */
+.soilwrap{display:grid;grid-template-columns:minmax(0,220px) minmax(0,1fr);gap:20px;align-items:center;margin-top:10px}
+.scene3d{perspective:700px;height:260px;display:grid;place-items:center}
+.cube{width:150px;height:200px;position:relative;transform-style:preserve-3d;animation:spin 14s linear infinite}
+@keyframes spin{from{transform:rotateX(-14deg) rotateY(0)}to{transform:rotateX(-14deg) rotateY(360deg)}}
+@media(prefers-reduced-motion:reduce){.cube{animation:none;transform:rotateX(-14deg) rotateY(-30deg)}}
+.face{position:absolute;width:150px;height:200px;display:flex;flex-direction:column;backface-visibility:hidden;border:1px solid rgba(0,0,0,.3)}
+.face.f{transform:translateZ(75px)}.face.b{transform:rotateY(180deg) translateZ(75px)}.face.l{transform:rotateY(-90deg) translateZ(75px)}.face.r{transform:rotateY(90deg) translateZ(75px)}
+.face.t{height:150px;transform:rotateX(90deg) translateZ(75px)}
+.face div{transition:flex .8s,background .8s}
+.hz{list-style:none;padding:0;margin:0;font-size:.75em}
+.hz li{display:flex;gap:8px;align-items:center;margin:4px 0}.hz li i{width:16px;height:16px;border-radius:4px;flex:none}
+/* animals */
+.ani{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:10px}
+.ani div{background:rgba(255,255,255,.06);border-radius:12px;padding:8px 12px;font-size:.72em;opacity:0;transform:translateY(12px);transition:opacity .6s,transform .6s}
+section.on .ani div{opacity:1;transform:none}
+.ani b{font-size:1.15em}
+.ani small{display:block;color:var(--mut)}
+/* diagram */
+.diag{pointer-events:auto;width:min(1240px,100%);margin:0 auto;background:var(--glass);backdrop-filter:blur(12px);border-radius:22px;padding:clamp(16px,2vw,32px);opacity:0;transition:opacity .9s}
+section.on .diag{opacity:1}
+.diag svg{width:100%;height:auto;display:block}
+.node rect{fill:rgba(255,255,255,.08);stroke:rgba(255,255,255,.35);stroke-width:2;transition:all .5s}
+.node text{fill:var(--ink);font:800 20px Manrope,sans-serif;text-anchor:middle}
+.node.lit rect{fill:rgba(63,208,196,.22);stroke:var(--tq)}
+.edge path{fill:none;stroke:var(--tq);stroke-width:3;stroke-dasharray:var(--len);stroke-dashoffset:var(--len);transition:stroke-dashoffset .9s}.edge.on path{marker-end:url(#arr)}
+.edge text{fill:var(--warm);font:700 18px Manrope,sans-serif;paint-order:stroke;stroke:#0d1c26;stroke-width:6px;stroke-linejoin:round;opacity:0;transition:opacity .6s .5s}
+.edge.on path{stroke-dashoffset:0}.edge.on text{opacity:1}
+.edge.back path{stroke:#9fd4ff;stroke-dasharray:6 6;stroke-dashoffset:0;opacity:0;transition:opacity .9s}
+.edge.back.on path{opacity:1}
+#dcap{min-height:2.6em;margin-top:8px;font-size:.85em}
+/* ecology */
+.eco{display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1fr) minmax(0,1.2fr);gap:18px;margin-top:6px;align-items:start}
+.eco svg{width:100%;height:auto;border-radius:12px;background:#264a2c}
+table{border-collapse:collapse;width:100%;font-size:.66em}
+th,td{text-align:left;padding:6px 6px;border-bottom:1px solid rgba(255,255,255,.12);vertical-align:top}
+th{color:var(--tq)}
+/* scenario */
+.scen{display:grid;gap:6px;margin-top:10px}
+.scen div{padding:8px 12px;border-radius:10px;background:rgba(255,255,255,.05);font-size:.8em;opacity:.35;transition:opacity .5s,background .5s}
+.scen div.on{opacity:1;background:rgba(63,208,196,.16)}
+/* sources */
+#sources .panel{max-height:86vh;overflow:auto;max-width:1000px}
+#sources ol{font-size:.68em;padding-left:1.3em}#sources li{margin:4px 0}
+/* hud */
+#prog{position:fixed;right:14px;top:50%;transform:translateY(-50%);z-index:5;display:flex;flex-direction:column;gap:8px}
+#prog button{width:14px;height:14px;min-height:0;padding:0;border-radius:50%;background:rgba(255,255,255,.3);border:0}
+#prog button.act{background:var(--tq);transform:scale(1.35)}
+#bar{position:fixed;left:0;top:0;height:4px;background:var(--tq);z-index:6;width:0}
+#hud{position:fixed;right:14px;bottom:14px;z-index:6;display:flex;gap:8px}
+#hud button{min-height:40px;font-size:13px;background:rgba(8,20,30,.7)}#hud button.act{background:var(--tq)}
+.lbl{position:fixed;left:0;top:0;z-index:3;pointer-events:none;font-size:clamp(13px,.95vw,18px);font-weight:700;color:#fff;text-shadow:0 1px 4px rgba(0,0,0,.9);white-space:nowrap;transition:opacity .5s}
+.lbl::after{content:"";position:absolute;left:50%;top:100%;width:2px;height:16px;background:rgba(255,255,255,.85)}
+.lbl.an{background:rgba(8,20,30,.78);padding:4px 10px;border-radius:999px;border:1.5px solid var(--warm);text-shadow:none}
+.lbl.an::after{background:var(--warm)}
+#credit{position:fixed;left:14px;bottom:10px;z-index:4;font-size:11px;color:rgba(255,255,255,.65);max-width:60vw;pointer-events:none}
+#load{position:fixed;inset:0;z-index:20;display:grid;place-items:center;background:var(--deep);font-size:20px;transition:opacity .8s}
+body.free main,body.free #shade,body.free .lbl{opacity:0!important;pointer-events:none!important}
+body.free main *{pointer-events:none!important}
+@media(max-width:760px){
+ #shade{background:linear-gradient(0deg,rgba(6,16,24,.85) 0%,rgba(6,16,24,.3) 60%,rgba(6,16,24,0) 100%)}
+ section{align-items:flex-end}.row,.readout,.eco,.soilwrap{grid-template-columns:minmax(0,1fr)}
+ .ani{grid-template-columns:minmax(0,1fr)}#prog{display:none}#credit{display:none}
+}
+</style>
+</head>
+<body>
+<div id="gl"></div><div id="shade"></div><div id="bar"></div>
+<div id="load">Загружаю рельеф и спутниковый снимок…</div>
+
+<main>
+<!-- 0 -->
+<section id="s-hero" data-k="hero">
+ <div class="panel">
+  <p class="num">География · 9 класс</p>
+  <h1>Почему природа БАО выглядит именно так?</h1>
+  <p class="lead">Причинно-следственные связи в природном комплексе Большого Алматинского озера</p>
+  <div class="btns"><button id="go1" class="act">Начать ↓</button><button id="freeBtn">Осмотреть 3D</button><button id="fsBtn">Полный экран (F)</button></div>
+  <p class="note">Тяните мышью — вращать. Стрелки ↑↓ — слайды. Модель: реальный рельеф (AWS Terrain Tiles) и снимок Sentinel‑2; глубины, ели, облака и звери показаны условно.</p>
+ </div>
+</section>
+
+<!-- 1 -->
+<section id="s-intro" data-k="intro">
+ <div class="panel">
+  <p class="num">1 · Вступление</p>
+  <h2>Одно положение — целая цепочка следствий</h2>
+  <p>Озеро лежит на высоте около <b>2500 м</b> на северном склоне Заилийского Алатау, примерно в 15 км к югу от Алматы.</p>
+  <div class="chain"><span>Положение и рельеф</span><i>→</i><span>Климат</span><i>→</i><span>Воды и почвы</span><i>→</i><span>Растения</span><i>→</i><span>Животные</span><i>→</i><span>Облик</span></div>
+  <p class="lead">Главный вопрос: как высота и горы определяют всё остальное?</p>
+  <figure class="ph" data-photo="intro"><figcaption>Место для фото: общий вид БАО</figcaption></figure>
+ </div>
+</section>
+
+<!-- 2 climate -->
+<section id="s-climate" data-k="climate">
+ <div class="panel">
+  <p class="num">2 · Рельеф → климат</p>
+  <h2>Высота делает климат холодным и снежным</h2>
+  <div class="cpe">
+   <div class="row"><div><b>Причина</b>Озеро поднято на ≈2500 м над морем</div><div><b>Процесс</b>С высотой воздух охлаждается — примерно на 4–5 °C на каждый километр</div><div><b>Следствие</b>У озера среднегодовая температура около 0 °C, в предгорьях +6…+8 °C</div></div>
+   <div class="row"><div><b>Причина</b>Горы — преграда на пути воздуха</div><div><b>Процесс</b>Воздух поднимается по склону, остывает, влага превращается в облака</div><div><b>Следствие</b>В районе озера ≈870 мм осадков за год</div></div>
+   <div class="row"><div><b>Причина</b>Чем выше, тем холоднее</div><div><b>Процесс</b>Выше 2200–2500 м осадки чаще выпадают снегом</div><div><b>Следствие</b>На 4000–4200 м — только снег: так копятся снежники и ледники</div></div>
+  </div>
+  <div class="legend"><span>−8 °C</span><div class="bar"></div><span>+8 °C</span></div>
+  <p class="note">Цвет на модели — среднегодовая температура, рассчитанная по точкам Казгидромета: предгорья +6…+8 °C, нулевая изотерма на 2500–2600 м, станция Мынжилки (3017 м) −2,0 °C. На станции у озера отмечен рост среднегодовой температуры. Облака показывают подъём воздуха по склону.</p>
+ </div>
+</section>
+
+<!-- 3 waters -->
+<section id="s-water" data-k="water">
+ <div class="panel">
+  <p class="num">3 · Климат → воды</p>
+  <h2>Тающий снег и ледники наполняют озеро</h2>
+  <div class="facts">
+   <div><span class="big">51,4</span> млн м³ в год приносят реки</div>
+   <div><span class="big">0,38</span> млн м³ — дождь и снег прямо на озеро</div>
+   <div><span class="big">≈300</span> селей «погасило» озеро за ≈2000 лет</div>
+  </div>
+  <p>Значит, озеро «кормят» реки, а реки — тающие снег и ледники. Основной набор воды — <b>с июня по сентябрь</b>. Зимой притока почти нет, а воду забирают для ГЭС и водоснабжения Алматы — уровень падает.</p>
+  <div class="mon">
+   <input type="range" id="month" min="0" max="11" step="1" value="4" aria-label="Месяц">
+   <div class="lab"><span>янв</span><span>мар</span><span>май</span><span>июл</span><span>сен</span><span>ноя</span></div>
+   <div class="readout"><div>Месяц<b id="rM">май</b></div><div>Уровень (≈)<b id="rL">2497 м</b></div><div>Приток<b id="rF">растёт</b></div></div>
+  </div>
+  <p class="note">Летняя мутно-бирюзовая вода — от тонких минеральных частиц, которые несут ледниковые ручьи. Уровни — схема по расчётному году Казгидромета (минимум ≈2495,5 м в начале июня, максимум ≈2507,4 м в начале ноября); по справочным данным колебания достигают 20 м. Снег на склонах — иллюстрация.</p>
+  <figure class="ph" data-photo="water"><figcaption>Место для фото: берег, ручей или дельта реки</figcaption></figure>
+ </div>
+</section>
+
+<!-- 4 soils -->
+<section id="s-soil" data-k="soil">
+ <div class="panel">
+  <p class="num">3 · Климат и рельеф → почвы</p>
+  <h2>Холод и крутизна: почвы тонкие и каменистые</h2>
+  <div class="row"><div><b>Причина</b>С высотой холоднее и влажнее</div><div><b>Процесс</b>Остатки растений разлагаются медленно; на крутых склонах вода смывает мелкие частицы</div><div><b>Следствие</b>Тонкий тёмный слой перегноя, ниже — щебень и камни</div></div>
+  <div class="soilwrap">
+   <div class="scene3d"><div class="cube" id="cube"><div class="face f"></div><div class="face b"></div><div class="face l"></div><div class="face r"></div><div class="face t"></div></div></div>
+   <div>
+    <div class="btns" style="margin-top:0"><button data-soil="0" class="act">Ельник</button><button data-soil="1">Луг</button><button data-soil="2">Осыпь</button></div>
+    <ul class="hz" id="hz"></ul>
+    <p id="soilTxt" style="font-size:.8em;margin-top:8px"></p>
+   </div>
+  </div>
+  <p class="note">Это общая схема для гор: в средних поясах — горно-лесные почвы, выше — горно-луговые (субальпийские и альпийские). Исследования в Заилийском Алатау показывают: главный фактор — высота (с подъёмом влажность растёт, температура падает), а камней становится больше с глубиной. Подробных описаний почв именно у БАО в открытых источниках мы не нашли.</p>
+ </div>
+</section>
+
+<!-- 5 plants -->
+<section id="s-plant" data-k="plant">
+ <div class="panel">
+  <p class="num">4 · Почвы и климат → растения</p>
+  <h2>Каждые сотни метров — другой мир растений</h2>
+  <div class="facts">
+   <div style="border-left:5px solid #2f8a45"><b>1600–2800 м</b><br>хвойные леса: ель Шренка</div>
+   <div style="border-left:5px solid #c9d23b"><b>≈2800–3500 м</b><br>субальпийские и альпийские луга, арча (можжевельник)</div>
+   <div style="border-left:5px solid #dfe9ff"><b>выше 3500 м</b><br>скалы, осыпи, ледники</div>
+  </div>
+  <div class="row"><div><b>Причина</b>Каждые 100 м вверх — прохладнее, лето короче</div><div><b>Процесс</b>Дереву не хватает тепла, почва тонкая, много снега и ветра</div><div><b>Следствие</b>Выше ≈2800 м лес сменяют луга и стелющаяся арча</div></div>
+  <p style="margin-top:10px">БАО на 2500 м — в верхней части елового пояса. У пика Советов ельники доходят до ≈2800 м, а на 3200 м встречаются подушки можжевельника.</p>
+  <p class="note">Границы поясов — обобщённые для северного склона Заилийского Алатау; на склонах разной ориентации они смещаются. На модели пояса окрашены по высоте, белые линии — 2800 и 3500 м.</p>
+  <figure class="ph" data-photo="plants"><figcaption>Место для фото: ели Шренка / луг / арча</figcaption></figure>
+ </div>
+</section>
+
+<!-- 6 animals -->
+<section id="s-animal" data-k="animal">
+ <div class="panel">
+  <p class="num">5 · Растения → животные</p>
+  <h2>Растения — это еда и дом</h2>
+  <div class="ani">
+   <div><b>Сибирский горный козёл</b><small>скалы и луга · траву ест летом, зимой ищет её на бесснежных крутых склонах</small></div>
+   <div><b>Снежный барс (ирбис)</b><small>очень редок · охотится на копытных; густой мех и длинный хвост — защита от холода</small></div>
+   <div><b>Серый сурок</b><small>альпийские луга · ест траву, зимой спит в норе</small></div>
+   <div><b>Красная пищуха</b><small>каменные осыпи · запасает сено на зиму среди камней</small></div>
+   <div><b>Косуля</b><small>ельники и опушки · лес — укрытие и корм</small></div>
+   <div><b>Каменная куница, горностай</b><small>лес и скалы · охотятся на грызунов</small></div>
+   <div><b>Бородач, гималайский гриф</b><small>скалы · питаются останками животных</small></div>
+   <div><b>Синяя птица</b><small>горные реки и скалы у воды</small></div>
+  </div>
+  <p class="note">Виды взяты из перечня для Большого Алматинского ущелья (Key Biodiversity Areas / BirdLife). Метки на модели показывают пояс обитания, а не места встреч. Ирбиса фиксировали в Большом Алматинском ущелье, когда он преследовал марала.</p>
+  <figure class="ph" data-photo="animals"><figcaption>Место для фото животных (только своих или с разрешением автора)</figcaption></figure>
+ </div>
+</section>
+
+<!-- 7 diagram -->
+<section id="s-diag" data-k="diag" class="tall">
+ <div class="stick">
+  <div class="diag">
+   <p class="num">6 · Единый природный комплекс</p>
+   <h2 style="font-size:clamp(28px,2.8vw,48px)">Всё связано: прокручивайте, чтобы соединить</h2>
+   <svg viewBox="0 0 1200 580" id="dsvg" aria-label="Схема причинно-следственных связей"></svg>
+   <p id="dcap"></p>
+  </div>
+ </div>
+</section>
+
+<!-- 8 compare -->
+<section id="s-look" data-k="look">
+ <div class="panel">
+  <p class="num">6 · Внешний облик</p>
+  <h2>Почему пейзаж БАО не похож на равнины Казахстана</h2>
+  <div class="row"><div><b>На равнинах</b>Природные зоны меняются на сотни километров: степь, полупустыня, пустыня</div><div><b>В горах</b>Те же перемены укладываются в несколько километров по вертикали</div><div><b>Итог</b>Бирюзовое озеро, тёмные ели, луга, скалы и снег — всё в одном кадре</div></div>
+  <p style="margin-top:12px">По Казгидромету, север Алматинской области — равнина с песками, а юг изрезан хребтами со сменой вертикальных поясов. БАО — типичный пример второго.</p>
+  <figure class="ph" data-photo="look"><figcaption>Место для фото: панорама с поясами (лес — луга — снег)</figcaption></figure>
+ </div>
+</section>
+
+<!-- 9 tourism -->
+<section id="s-tour" data-k="tour">
+ <div class="panel">
+  <p class="num">7 · Туризм</p>
+  <h2>Красота рядом с городом — но это высокогорье</h2>
+  <div class="row"><div><b>Почему едут</b>15 км от Алматы, бирюзовая вода, вершины выше 4000 м</div><div><b>Что мешает</b>Крутые подъёмы, камнепады, оползни: дорога закрыта для личного транспорта</div><div><b>Что учесть</b>На 2500 м холодно даже летом, погода быстро меняется</div></div>
+  <h3 style="margin-top:14px">Правила (по данным на ноябрь 2026)</h3>
+  <ul style="font-size:.82em;margin:0;padding-left:1.1em">
+   <li>По дороге к озеру запрещены личные авто, мото- и электротехника (самокаты, электровелосипеды).</li>
+   <li>Подходить к воде запрещено: озеро — источник питьевой воды для Алматы.</li>
+   <li>Въезд в нацпарк платный: 1297 ₸ за легковой автомобиль; дальше — пешком.</li>
+   <li>Рядом граница с Кыргызстаном — берите удостоверение личности.</li>
+   <li>Строится организованная тропа 5,3 км, завершение запланировано на ноябрь–декабрь 2026.</li>
+  </ul>
+  <p class="note">Правила меняются — перед поездкой проверьте сайт Иле-Алатауского нацпарка.</p>
+  <figure class="ph" data-photo="tour"><figcaption>Место для фото: тропа, смотровая площадка</figcaption></figure>
+ </div>
+</section>
+
+<!-- 10 ecology -->
+<section id="s-eco" data-k="eco">
+ <div class="panel" style="max-width:min(1400px,100%)">
+  <p class="num">8 · Человек и природа</p>
+  <h2>Чем больше людей — тем выше нагрузка</h2>
+  <div class="eco">
+   <div>
+    <svg viewBox="0 0 400 240" id="ecosvg" aria-label="Условная схема нагрузки на луг"></svg>
+    <label style="display:block;font-size:.75em;margin-top:8px">Поток туристов
+     <input type="range" id="load2" min="0" max="1" step="0.01" value="0.3" style="width:100%;accent-color:var(--tq)"></label>
+    <div class="btns" style="margin-top:6px"><button id="measures">Включить меры</button></div>
+    <p class="note">Условная схема, а не данные: тропа расширяется, трава вытаптывается, появляется мусор.</p>
+   </div>
+   <div>
+    <h3>Подтверждено для БАО</h3>
+    <ul style="font-size:.75em;margin:0 0 8px;padding-left:1.1em">
+     <li><b>Мусор.</b> Октябрь 2026: нацпарк убирает берег ежедневно, но мусор снова появляется — людей много, часть не соблюдает правила.</li>
+     <li><b>Повреждение покрова.</b> Апрель 2026: туристы съезжали с дороги на электротранспорте без гида.</li>
+     <li><b>Беспокойство птиц.</b> Для Большого Алматинского ущелья в числе угроз названы интенсивный отдых, мусор, туризм.</li>
+    </ul>
+    <p style="font-size:.72em;color:var(--mut)">Вытаптывание и эрозия почв — <b>возможное</b> следствие: так бывает на любых популярных тропах. Числовых данных именно по БАО мы не нашли.</p>
+   </div>
+  <div><h3>Меры и их эффективность</h3><table>
+   <tr><th>Мера</th><th>Что известно</th><th>Насколько работает</th></tr>
+   <tr><td>Ежедневная уборка</td><td>Проводится нацпарком</td><td>Убирает следствие, но не причину: мусор возвращается</td></tr>
+   <tr><td>Запрет личного транспорта и электротехники</td><td>Действует, проводятся рейды и дежурства</td><td>Снижает нагрузку на дорогу и склоны; цифр нет</td></tr>
+   <tr><td>Запрет подходить к воде</td><td>Защищает источник питьевой воды</td><td>Зависит от контроля на месте</td></tr>
+   <tr><td>Тропа 5,3 км</td><td>Строится, срок — конец 2026</td><td>Может собрать людей на одном пути; оценить пока рано</td></tr>
+  </table></div>
+  </div>
+  <figure class="ph" data-photo="eco" style="aspect-ratio:16/3;max-height:12vh"><figcaption>Место для фото: тропа, знаки, уборка</figcaption></figure>
+ </div>
+</section>
+
+<!-- 11 conclusion -->
+<section id="s-end" data-k="end">
+ <div class="panel">
+  <p class="num">9 · Заключение</p>
+  <h2>Тронешь одно — изменится всё</h2>
+  <p>БАО — единая природная система. Выберите изменение и посмотрите, как оно может пройти по цепочке:</p>
+  <div class="btns" style="margin-top:4px"><button data-sc="0" class="act">Потепление</button><button data-sc="1">Вытоптан склон</button><button data-sc="2">Мусор у воды</button></div>
+  <div class="scen" id="scen"></div>
+  <p class="note">Это возможные сценарии, а не прогноз. Рост температуры на станции у озера — реальный факт из исследования Казгидромета.</p>
+ </div>
+</section>
+
+<!-- 12 sources -->
+<section id="sources" data-k="src">
+ <div class="panel">
+  <p class="num">10 · Источники</p>
+  <h2>Откуда эти факты</h2>
+  <ol>
+   <li><a href="https://journal.kazhydromet.kz/kazgidro/article/download/241/253/6937" target="_blank" rel="noopener">Мазур Л.П., Чигринец А.Г., Раченков М.Н. Оценка влияния озера Улькен Алматы на режим и характеристики стока реки Улькен Алматы // Гидрометеорология и экология (Казгидромет), 2015, №2</a> — температура, осадки, водный баланс, уровни, сели, происхождение озера</li>
+   <li><a href="https://www.kazhydromet.kz/uploads/files/73/file_en/oblast.pdf" target="_blank" rel="noopener">Казгидромет. Климат Алматинской области</a> — равнины на севере, вертикальные пояса на юге</li>
+   <li><a href="https://tengrinews.kz/kazakhstan_news/melcaet-bao-institute-geografii-prokommentirovali-vozniksie-322081/amp/" target="_blank" rel="noopener">Tengrinews: комментарий Института географии о сезонном обмелении и цвете воды БАО</a></li>
+   <li><a href="https://tengrinews.kz/article/ledniki-delayut-elektrichestvo-almatyi-chto-etomu-meshat-4179/" target="_blank" rel="noopener">Tengrinews: ледники, БАО и каскад ГЭС — набор воды с июня по сентябрь</a></li>
+   <li><a href="https://www.zakon.kz/obshestvo/6398185-almatintsev-napugalo-obmelevshee-bao.html" target="_blank" rel="noopener">Zakon.kz: АО «Алматинские электрические станции» о сработке озера</a></li>
+   <li><a href="https://en.wikipedia.org/wiki/Big_Almaty_Lake" target="_blank" rel="noopener">Wikipedia: Big Almaty Lake</a> — справочные размеры, колебания уровня до 20 м</li>
+   <li><a href="https://www.keybiodiversityareas.org/site/factsheet/19948" target="_blank" rel="noopener">Key Biodiversity Areas: Big Almaty Gorge</a> — пояса, животные, птицы, угрозы</li>
+   <li><a href="https://www.gov.kz/memleket/entities/ecogeo/press/news/details/1252960?lang=ru" target="_blank" rel="noopener">Минэкологии РК: Иле-Алатауский национальный парк (июль 2026)</a></li>
+   <li><a href="https://www.nur.kz/family/school/1713815-almatinskij-zapovednik-rastenia-i-zivotnye/" target="_blank" rel="noopener">Nur.kz: высотные пояса Алматинского заповедника (северный склон Заилийского Алатау)</a></li>
+   <li><a href="https://www.plantarium.ru/lang/en/page/landscapes/location/1055-1058-94-1163-1327/part/3.html" target="_blank" rel="noopener">Плантариум: ельники на 2800 м и можжевельник на 3200 м у пика Советов</a></li>
+   <li><a href="https://bulletin-ecology.kaznu.kz/index.php/1-eco/article/download/1546/1083/4064" target="_blank" rel="noopener">Вестник КазНУ, серия экологическая, 2024, №4 — почвы Заилийского Алатау</a></li>
+   <li><a href="https://istmat.org/files/uploads/45007/atlas_pochv_sssr_1974.pdf" target="_blank" rel="noopener">Атлас почв СССР (1974) — высотная поясность почв</a></li>
+   <li><a href="https://24.kz/ru/news/ekologiya/752289-snezhnogo-barsa-zametili-v-okrestnostyakh-almaty" target="_blank" rel="noopener">24.kz: снежный барс в Большом Алматинском ущелье</a></li>
+   <li><a href="https://bes.media/news/dostup-k-bao-ogranichili-dlya-avtomobiley-i-elektrosamokatov/" target="_blank" rel="noopener">BES.media, 30.04.2026: ограничение транспорта к БАО</a></li>
+   <li><a href="https://www.inform.kz/ru/doroga-zakrita-uzhe-5-let-otkroyutli-proezd-kbao-valmati-37f56e" target="_blank" rel="noopener">Kazinform: почему закрыта дорога к БАО</a></li>
+   <li><a href="https://www.zakon.kz/stati/6537088-zima-blizko-samoe-krasivoe-vremya-na-bao--fotoreportazh.html" target="_blank" rel="noopener">Zakon.kz, 02.11.2026: как попасть на БАО, тропа 5,3 км, правила</a></li>
+   <li><a href="https://bes.media/news/prosto-pozor-kazahstanku-vozmutilo-kolichestvo-musora-na-bao/" target="_blank" rel="noopener">BES.media, 25.10.2026: мусор на БАО, ответ нацпарка и акимата</a></li>
+   <li>3D: рельеф — <a href="https://registry.opendata.aws/terrain-tiles/" target="_blank" rel="noopener">AWS Terrain Tiles</a>; снимок — <a href="https://s2maps.eu" target="_blank" rel="noopener">Sentinel‑2 cloudless 2023 by EOX IT Services GmbH</a> (CC BY‑NC‑SA 4.0, данные Copernicus Sentinel 2023)</li>
+  </ol>
+ </div>
+</section>
+</main>
+
+<nav id="prog" aria-label="Слайды"></nav>
+<div id="hud"><button id="liteBtn" title="L">Лёгкая графика</button><button id="fs2" title="F">⛶</button></div>
+<div id="credit">Рельеф: AWS Terrain Tiles · Снимок: Sentinel‑2 cloudless 2023 by EOX (CC BY‑NC‑SA 4.0)</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/objects/Sky.js"></script>
+<script>
+{
+/* ====== ФОТО: положите файлы в папку photos/ с этими именами — они подставятся сами ====== */
+const PHOTOS={intro:'photos/intro.jpg',water:'photos/water.jpg',plants:'photos/plants.jpg',animals:'photos/animals.jpg',look:'photos/look.jpg',tour:'photos/tour.jpg',eco:'photos/eco.jpg'};
+document.querySelectorAll('figure.ph').forEach(f=>{const src=PHOTOS[f.dataset.photo];if(!src)return;const im=new Image();im.alt=f.querySelector('figcaption').textContent;im.onload=()=>{f.classList.add('has');f.prepend(im)};im.src=src;});
+
+const N=768,SZ=10.726,LAKE=2507.05;
+const Y=h=>(h-LAKE)/1000;
+const q=s=>document.querySelector(s),qa=s=>[...document.querySelectorAll(s)];
+const slow=matchMedia('(pointer:coarse)').matches||innerWidth<760||(navigator.hardwareConcurrency||4)<=2;
+let lite=slow;try{const s=localStorage.getItem('bao-lite');if(s)lite=s==='1'}catch(e){}
+
+/* ---------- slides, keys, progress ---------- */
+const secs=qa('main section');
+const prog=q('#prog');
+secs.forEach((s,i)=>{const b=document.createElement('button');b.setAttribute('aria-label','Слайд '+(i+1));b.onclick=()=>goSlide(i);prog.appendChild(b)});
+const dots=qa('#prog button');
+function tops(){return secs.map(s=>s.offsetTop)}
+function goSlide(i){i=Math.max(0,Math.min(secs.length-1,i));scrollTo({top:secs[i].offsetTop,behavior:'smooth'})}
+let active=0;
+function curSlide(){const t=tops(),y=scrollY+innerHeight*.45;let k=0;t.forEach((v,i)=>{if(v<=y)k=i});return k}
+const diagSec=q('#s-diag');
+addEventListener('keydown',e=>{
+ if(e.target.tagName==='INPUT')return;
+ const k=e.key;
+ if(['ArrowDown','PageDown',' '].includes(k)){e.preventDefault();stepNext(1)}
+ else if(['ArrowUp','PageUp'].includes(k)){e.preventDefault();stepNext(-1)}
+ else if(k==='Home'){e.preventDefault();goSlide(0)}else if(k==='End'){e.preventDefault();goSlide(secs.length-1)}
+ else if(k==='f'||k==='F'||k==='а'||k==='А')fs();
+ else if(k==='l'||k==='L'||k==='д'||k==='Д')setLite(!lite);
+ else if(k==='Escape')document.body.classList.remove('free');
+});
+function stepNext(d){
+ const i=curSlide();
+ if(secs[i]===diagSec){const top=diagSec.offsetTop,span=diagSec.offsetHeight-innerHeight,st=span/EDGES.length;const y=scrollY-top;
+  if(d>0&&y<span-4){scrollTo({top:top+Math.min(span,Math.floor(y/st+1.02)*st),behavior:'smooth'});return}
+  if(d<0&&y>4){scrollTo({top:top+Math.max(0,Math.ceil(y/st-1.02)*st),behavior:'smooth'});return}}
+ goSlide(i+d);
+}
+function fs(){try{document.fullscreenElement?document.exitFullscreen():document.documentElement.requestFullscreen()}catch(e){}}
+q('#fsBtn').onclick=fs;q('#fs2').onclick=fs;q('#go1').onclick=()=>goSlide(1);
+q('#freeBtn').onclick=()=>{document.body.classList.add('free');showToast('Режим осмотра: тяните мышью. Esc или любая стрелка — вернуться.')};
+addEventListener('keydown',e=>{if(document.body.classList.contains('free')&&e.key.startsWith('Arrow'))document.body.classList.remove('free')});
+function showToast(t){const d=document.createElement('div');d.textContent=t;d.style.cssText='position:fixed;left:50%;top:20px;transform:translateX(-50%);z-index:30;background:rgba(8,20,30,.85);padding:12px 18px;border-radius:12px;font-size:16px';document.body.appendChild(d);setTimeout(()=>d.remove(),3500)}
+
+/* ---------- month slider (waters) ---------- */
+const MON=['янв','фев','мар','апр','май','июн','июл','авг','сен','окт','ноя','дек'];
+const LEV=[2504,2502.3,2500.6,2498.9,2497.2,2495.5,2497.9,2500.3,2502.6,2505,2507.4,2505.7];
+const SNOW=[.95,.95,.85,.7,.5,.3,.12,.05,.1,.4,.7,.9];
+const FLOW=[.05,.05,.1,.25,.55,.9,1,1,.8,.35,.12,.05];
+const ICE=[1,1,1,.8,.2,0,0,0,0,0,.3,.9];
+let month=4;
+function setMonth(m){month=m;q('#rM').textContent=MON[m];q('#rL').textContent=Math.round(LEV[m])+' м';
+ const d=LEV[(m+1)%12]-LEV[m];q('#rF').textContent=FLOW[m]>.7?'максимум':FLOW[m]>.3?(d>0?'растёт':'средний'):'почти нет';}
+q('#month').addEventListener('input',e=>setMonth(+e.target.value));setMonth(4);
+
+/* ---------- soil cube ---------- */
+const SOILS=[
+ {n:'Под ельником',t:'Хвоя образует подстилку, под ней — тёмный перегнойный слой. Корни елей держат склон.',h:[['Подстилка из хвои','#6b4a2b',.6],['Тёмный перегнойный слой','#2e2218',2],['Переходный слой','#6e5a3e',1.6],['Щебень и камни','#8b8378',2.4]]},
+ {n:'На лугу',t:'Плотная дернина из корней трав. Холод замедляет разложение — перегной копится тонким слоем.',h:[['Дернина (корни трав)','#4f6b2c',.9],['Перегнойный слой','#3a2c1e',1.4],['Каменистый суглинок','#7c6b52',1.6],['Обломки породы','#9a948a',2.6]]},
+ {n:'На осыпи',t:'Склон крутой, камни движутся — почва почти не успевает образоваться.',h:[['Мхи, лишайники','#7c8a5a',.25],['Мелкозём между камнями','#6b5c48',.5],['Каменная осыпь','#a7a39b',5.2]]}
+];
+function setSoil(i){qa('[data-soil]').forEach(b=>b.classList.toggle('act',+b.dataset.soil===i));const s=SOILS[i];
+ const col=s.h.map(([n,c,f])=>`<div style="flex:${f};background:${c}"></div>`).join('');
+ qa('.cube .face:not(.t)').forEach(f=>f.innerHTML=col);q('.cube .face.t').style.background=s.h[0][1];
+ q('#hz').innerHTML=s.h.map(([n,c])=>`<li><i style="background:${c}"></i>${n}</li>`).join('');q('#soilTxt').textContent=s.t;}
+qa('[data-soil]').forEach(b=>b.onclick=()=>setSoil(+b.dataset.soil));setSoil(0);
+
+/* ---------- causal diagram ---------- */
+const NODES={pos:[120,110,'Положение, рельеф'],cli:[560,110,'Климат'],wat:[1080,110,'Воды'],soi:[560,330,'Почвы'],pla:[940,330,'Растения'],ani:[640,530,'Животные'],look:[1080,530,'Облик БАО']};
+/* [from,to,label,caption,back,bend,[lx,ly,anchor]] */
+const EDGES=[
+ ['pos','cli','высота → холод','Причина всего: высота. Каждый километр вверх — на 4–5 °C холоднее.',0,0,[340,96,'middle']],
+ ['cli','wat','снег и лёд тают','Климат даёт воду: зимой копится снег, летом он тает и питает реки.',0,0,[820,96,'middle']],
+ ['pos','wat','котловина, завал','Рельеф создал чашу: ≈2000 лет назад завал перегородил долину — так появилось озеро.',0,-110,[600,38,'middle']],
+ ['cli','soi','холод → мало перегноя','Холод замедляет разложение — почвы тонкие.',0,0,[575,262,'start']],
+ ['pos','soi','склоны → смыв','Крутые склоны: вода смывает мелкие частицы, остаются камни.',0,0,[300,262,'end']],
+ ['soi','pla','тонкая почва','Тонкая, каменистая почва — не всякое растение удержится.',0,0,[750,318,'middle']],
+ ['cli','pla','тепло → лес до 2800 м','Тепла для елей хватает примерно до 2800 м — выше луга.',0,0,[790,198,'start']],
+ ['pla','ani','еда и укрытие','Растения кормят сурков и козлов, лес укрывает косуль.',0,0,[730,420,'end']],
+ ['pla','soi','опад и корни','Обратная связь: опад даёт перегной, корни держат склон.',1,-50,[750,398,'middle']],
+ ['wat','look','бирюза','Ледниковая муть окрашивает воду в бирюзу.',0,0,[1094,300,'start']],
+ ['pla','look','полосы на склонах','Пояса растений рисуют полосы на склонах.',0,0,[990,450,'end']],
+ ['ani','pla','поедают растения','Животные тоже влияют на растения — связь работает в обе стороны.',1,60,[800,512,'start']]
+];
+const svg=q('#dsvg');
+{let h='<defs><marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#3fd0c4"/></marker></defs>';
+ const W=216,H=64;
+ const clip=(x,y,dx,dy,k)=>{const tx=W/2/Math.max(1e-3,Math.abs(dx)),ty=H/2/Math.max(1e-3,Math.abs(dy));const t=Math.min(tx,ty)*k;return[x+dx*t,y+dy*t]};
+ EDGES.forEach(([a,b,l,c,back,bend,[lx,ly,an]],i)=>{const[ax,ay]=NODES[a],[bx,by]=NODES[b];const dx=bx-ax,dy=by-ay,len=Math.hypot(dx,dy),ux=dx/len,uy=dy/len;
+  const off=bend||0,nx=-uy*off,ny=ux*off;
+  const [sx,sy]=clip(ax,ay,ux+2*nx/len,uy+2*ny/len,1.02),[ex,ey]=clip(bx,by,-ux+2*nx/len,-uy+2*ny/len,1.12);
+  const mx=(sx+ex)/2+nx,my=(sy+ey)/2+ny,L=len+Math.abs(off)*2;
+  h+=`<g class="edge${back?' back':''}" id="e${i}" style="--len:${L}"><path d="M${sx} ${sy} Q${mx} ${my} ${ex} ${ey}"/><text x="${lx}" y="${ly}" text-anchor="${an}">${l}</text></g>`});
+ for(const k in NODES){const[x,y,t]=NODES[k];h+=`<g class="node" id="n-${k}"><rect x="${x-W/2}" y="${y-H/2}" width="${W}" height="${H}" rx="16"/><text x="${x}" y="${y+8}">${t}</text></g>`}
+ svg.innerHTML=h;}
+let shownEdges=-1;
+function setDiag(p){const n=Math.min(EDGES.length,Math.floor(p*(EDGES.length+.999)));if(n===shownEdges)return;shownEdges=n;
+ EDGES.forEach((e,i)=>q('#e'+i).classList.toggle('on',i<n));
+ const lit=new Set();EDGES.slice(0,n).forEach(([a,b])=>{lit.add(a);lit.add(b)});if(n===0)lit.add('pos');
+ for(const k in NODES)q('#n-'+k).classList.toggle('lit',lit.has(k));
+ q('#dcap').textContent=n===0?'Начнём с причины: положение и рельеф.':EDGES[n-1][3];}
+
+/* ---------- ecology svg ---------- */
+let measures=false,loadV=.3;
+const tufts=[...Array(70)].map((_,i)=>[(i*97)%400,(i*53)%240]);
+const litter=[...Array(28)].map((_,i)=>[150+((i*71)%110)-10,20+((i*37)%200)]);
+function drawEco(){const w=20+loadV*110*(measures?.45:1);
+ const tr=tufts.map(([x,y])=>{const d=Math.abs(x-200+Math.sin(y/40)*30);const a=d<w/2?0:Math.min(1,(d-w/2)/30+.2);return `<path d="M${x} ${y}l-4 -10M${x} ${y}l0 -12M${x} ${y}l4 -10" stroke="#7fbf5a" stroke-width="2" opacity="${a}"/>`}).join('');
+ const nl=Math.round(loadV*28*(measures?.25:1));
+ const lt=litter.slice(0,nl).map(([x,y],i)=>`<rect x="${x}" y="${y}" width="${i%3?7:10}" height="${i%3?4:9}" rx="1" fill="${['#f2f2f2','#4fa3ff','#ff5a5a','#ffd84a'][i%4]}" transform="rotate(${i*37} ${x} ${y})"/>`).join('');
+ let path='';for(let y=0;y<=240;y+=10)path+=(y?'L':'M')+(200+Math.sin(y/40)*30)+' '+y;
+ q('#ecosvg').innerHTML=`<rect width="400" height="240" fill="#2f5a33"/>${tr}<path d="${path}" stroke="#8a7458" stroke-width="${w}" fill="none" stroke-linecap="round"/>${measures?`<path d="${path}" stroke="#b49a72" stroke-width="18" fill="none"/>`:''}${lt}<text x="10" y="230" fill="#fff" font-size="13" font-family="Manrope">${measures?'Меры: тропа, уборка, контроль':'Без мер'}</text>`;}
+q('#load2').addEventListener('input',e=>{loadV=+e.target.value;drawEco()});
+q('#measures').onclick=e=>{measures=!measures;e.target.classList.toggle('act',measures);e.target.textContent=measures?'Выключить меры':'Включить меры';drawEco()};drawEco();
+
+/* ---------- scenarios ---------- */
+const SC=[
+ ['Становится теплее (на станции у озера тренд уже есть)','Снежная граница и ледники отступают вверх','Летом сначала больше талой воды, а с уменьшением ледников — меньше','Растения и животные могут сдвигаться выше по склону','Облик меняется: меньше снега, другие оттенки воды'],
+ ['Вытоптан и разрушен дёрн на склоне','Корни больше не держат почву','Дождь и талая вода смывают тонкий перегнойный слой','Растениям негде укорениться — склон «лысеет»','Животные теряют корм, а в озеро попадает больше мути'],
+ ['Мусор оставлен у берега','Ветер и талая вода уносят его к воде','Загрязняется источник питьевой воды Алматы','Пластик опасен для птиц и зверей','Нужны уборка, запреты и контроль — а это деньги и силы']
+];
+function setSc(i){qa('[data-sc]').forEach(b=>b.classList.toggle('act',+b.dataset.sc===i));const el=q('#scen');el.innerHTML=SC[i].map((t,k)=>`<div>${k?'→ ':''}${t}</div>`).join('');[...el.children].forEach((d,k)=>setTimeout(()=>d.classList.add('on'),250+k*450))}
+qa('[data-sc]').forEach(b=>b.onclick=()=>setSc(+b.dataset.sc));
+
+/* =================== 3D =================== */
+const px=async u=>{const b=await fetch(u).then(r=>{if(!r.ok)throw u;return r.blob()});const im=await createImageBitmap(b,{colorSpaceConversion:'none',premultiplyAlpha:'none'});const c=document.createElement('canvas');c.width=im.width;c.height=im.height;const g=c.getContext('2d');g.drawImage(im,0,0);return g.getImageData(0,0,im.width,im.height).data};
+const texL=u=>new Promise((res,rej)=>new THREE.TextureLoader().load(u,res,undefined,rej));
+Promise.all([px('dem.png'),px('trees.png'),px('lake.png'),texL('sat.jpg'),texL('lake.png')]).then(start).catch(e=>{q('#load').textContent='Не удалось загрузить 3D: '+e+'. Текст презентации работает.';setTimeout(()=>q('#load').remove(),2500);onScroll()});
+
+let setLite=v=>{lite=v};
+function start([demPx,trPx,lakePx,sat,lakeTex]){
+const H=new Float32Array(N*N);for(let i=0;i<N*N;i++)H[i]=(demPx[i*4]*256+demPx[i*4+1])/20+1500;
+const LK=new Uint8Array(N*N);for(let i=0;i<N*N;i++)LK[i]=lakePx[i*4]>8?1:0;
+const hAt=(x,z)=>{const fx=Math.min(N-1.001,Math.max(0,(x/SZ+.5)*(N-1))),fz=Math.min(N-1.001,Math.max(0,(z/SZ+.5)*(N-1)));const ix=fx|0,iz=fz|0,tx=fx-ix,tz=fz-iz,i=iz*N+ix;return(H[i]*(1-tx)+H[i+1]*tx)*(1-tz)+(H[i+N]*(1-tx)+H[i+N+1]*tx)*tz};
+
+const host=q('#gl');
+const renderer=new THREE.WebGLRenderer({antialias:!lite,powerPreference:'high-performance'});
+const DPRMAX=Math.min(devicePixelRatio||1,1.5);let dpr=lite?.75:Math.min(DPRMAX,1.25);
+renderer.setPixelRatio(dpr);renderer.outputEncoding=THREE.sRGBEncoding;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=.52;
+host.appendChild(renderer.domElement);
+const scene=new THREE.Scene();const haze=new THREE.Color(.6,.7,.8);scene.fog=new THREE.FogExp2(haze,.02);
+const cam=new THREE.PerspectiveCamera(50,1,.005,600);
+const sky=new THREE.Sky();sky.scale.setScalar(500);scene.add(sky);
+const su=sky.material.uniforms;su.turbidity.value=2.2;su.rayleigh.value=2.2;su.mieCoefficient.value=.003;su.mieDirectionalG.value=.8;
+const sunDir=new THREE.Vector3(Math.sin(2.44)*Math.cos(.84),Math.sin(.84),-Math.cos(2.44)*Math.cos(.84)).normalize();
+su.sunPosition.value.copy(sunDir);
+scene.add(new THREE.HemisphereLight(0xd6e6ff,0x4b4a3c,1.45));
+const sun=new THREE.DirectionalLight(0xfff3e2,3.1);sun.position.copy(sunDir).multiplyScalar(50);scene.add(sun);
+
+/* terrain: 384×384 grid ≈ 28 м — это и есть разрешение исходных данных SRTM (~30 м), поэтому качество не теряется */
+const STEP=2,SEG=(N-1)/STEP|0;
+sat.encoding=THREE.sRGBEncoding;sat.anisotropy=Math.min(8,renderer.capabilities.getMaxAnisotropy());
+const tgeo=new THREE.PlaneGeometry(SZ,SZ,SEG,SEG);tgeo.rotateX(-Math.PI/2);
+{const p=tgeo.attributes.position;for(let r=0;r<=SEG;r++)for(let c=0;c<=SEG;c++)p.setY(r*(SEG+1)+c,Y(H[(r*STEP)*N+c*STEP]));tgeo.computeVertexNormals()}
+const U={uBelts:{value:0},uTemp:{value:0},uSnow:{value:0},uDim:{value:0}};
+const tmat=new THREE.MeshStandardMaterial({map:sat,roughness:1,metalness:0});
+tmat.extensions={derivatives:true};
+tmat.onBeforeCompile=sh=>{Object.assign(sh.uniforms,U);
+ sh.vertexShader=sh.vertexShader.replace('#include <common>','#include <common>\nvarying vec3 vW;').replace('#include <worldpos_vertex>','#include <worldpos_vertex>\nvW=(modelMatrix*vec4(transformed,1.)).xyz;');
+ sh.fragmentShader=sh.fragmentShader.replace('#include <common>',`#include <common>
+varying vec3 vW;uniform float uBelts,uTemp,uSnow,uDim;
+float h2(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
+float vn(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(h2(i),h2(i+vec2(1,0)),f.x),mix(h2(i+vec2(0,1)),h2(i+vec2(1,1)),f.x),f.y);}`)
+ .replace('#include <map_fragment>',`#include <map_fragment>
+float dd=length(vW-cameraPosition);
+float n1=vn(vW.xz*90.)*.55+vn(vW.xz*260.)*.3+vn(vW.xz*700.)*.15;
+diffuseColor.rgb*=mix(1.,.8+.4*n1,(1.-smoothstep(.4,3.5,dd))*.9);
+float hm=vW.y*1000.+${LAKE.toFixed(2)};
+vec3 fn=normalize(cross(dFdx(vW),dFdy(vW)));float up=abs(fn.y);
+if(uSnow>.001){float sl=mix(4500.,1650.,uSnow);float sn=smoothstep(sl-50.,sl+50.,hm+(n1-.5)*220.)*smoothstep(.35,.75,up);diffuseColor.rgb=mix(diffuseColor.rgb,vec3(.92,.95,1.),sn);}
+if(uBelts>.001){vec3 bc=hm<1600.?vec3(.85,.55,.2):hm<2800.?vec3(.12,.5,.22):hm<3500.?vec3(.8,.84,.22):vec3(.88,.93,1.);
+ float ln=max(1.-smoothstep(0.,6.,abs(hm-2800.)),1.-smoothstep(0.,6.,abs(hm-3500.)));
+ diffuseColor.rgb=mix(diffuseColor.rgb,bc,uBelts*.38)+ln*uBelts*.9;}
+if(uTemp>.001){float T=-(hm-2550.)*.0043;vec3 tc=T>0.?mix(vec3(1.,.88,.48),vec3(.94,.35,.16),clamp(T/8.,0.,1.)):mix(vec3(.55,.78,1.),vec3(.23,.33,.88),clamp(-T/8.,0.,1.));
+ float z0=1.-smoothstep(0.,7.,abs(hm-2550.));diffuseColor.rgb=mix(diffuseColor.rgb,tc,uTemp*.72)+z0*uTemp;}
+diffuseColor.rgb*=1.-uDim*.55;`);
+};
+const world=new THREE.Group();scene.add(world);
+const terrain=new THREE.Mesh(tgeo,tmat);world.add(terrain);
+
+/* outer mountains (fog backdrop) */
+const perm=new Uint8Array(512);{let s=11;for(let i=0;i<256;i++)perm[i]=i;for(let i=255;i>0;i--){s=(s*16807)%2147483647;const j=s%(i+1);[perm[i],perm[j]]=[perm[j],perm[i]]}for(let i=0;i<256;i++)perm[i+256]=perm[i]}
+const hs=(x,y)=>perm[(perm[x&255]+y)&255]/255,sm=t=>t*t*(3-2*t);
+const vn=(x,y)=>{const xi=Math.floor(x),yi=Math.floor(y),xf=x-xi,yf=y-yi,a=hs(xi,yi),b=hs(xi+1,yi),c=hs(xi,yi+1),d=hs(xi+1,yi+1),u=sm(xf),v=sm(yf);return a+(b-a)*u+(c-a)*v+(a-b-c+d)*u*v};
+const ridged=(x,y)=>{let f=0,a=.5,fr=1;for(let i=0;i<5;i++){f+=a*(1-Math.abs(vn(x*fr,y*fr)*2-1))**2;fr*=2.07;a*=.5}return f};
+let outer;
+function buildOuter(g){if(outer){world.remove(outer);outer.geometry.dispose()}
+ const geo=new THREE.PlaneGeometry(90,90,g,g);geo.rotateX(-Math.PI/2);const p=geo.attributes.position,col=new Float32Array(p.count*3),half=SZ/2-.02;
+ for(let i=0;i<p.count;i++){const x=p.getX(i),z=p.getZ(i),cx=Math.max(-half,Math.min(half,x)),cz=Math.max(-half,Math.min(half,z)),out=Math.hypot(x-cx,z-cz);
+  let h;if(out<=0)h=1400;else{const pr=2300+ridged(x*.22+5,z*.22+9)*2600+(z>0?Math.min(1,z/20)*700:-Math.min(1,-z/25)*900);h=THREE.MathUtils.lerp(hAt(cx,cz),pr,sm(Math.min(1,out/3.5)))}
+  p.setY(i,Y(h));const nz=vn(x*1.7,z*1.7)*.12;col.set(h>4050+nz*900?[.8,.82,.85]:h>3200?[.36+nz,.33+nz,.3+nz]:h>2700?[.26+nz,.29+nz,.18]:[.12,.19+nz*.5,.11],i*3)}
+ geo.setAttribute('color',new THREE.BufferAttribute(col,3));geo.computeVertexNormals();
+ outer=new THREE.Mesh(geo,new THREE.MeshLambertMaterial({vertexColors:true}));world.add(outer)}
+buildOuter(lite?90:150);
+
+/* water: level, ice, ripples */
+const WU={uTime:{value:0},uLake:{value:lakeTex},uSun:{value:sunDir},uSZ:{value:SZ},fogColor:{value:haze},fogDensity:{value:.02},uIce:{value:0}};
+const water=new THREE.Mesh(new THREE.PlaneGeometry(1.3,1.7).rotateX(-Math.PI/2),new THREE.ShaderMaterial({transparent:true,uniforms:WU,
+ vertexShader:`varying vec3 vW;void main(){vec4 w=modelMatrix*vec4(position,1.);vW=w.xyz;gl_Position=projectionMatrix*viewMatrix*w;}`,
+ fragmentShader:`uniform float uTime,uSZ,fogDensity,uIce;uniform sampler2D uLake;uniform vec3 uSun,fogColor;varying vec3 vW;
+ float h2(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
+ float vn(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(h2(i),h2(i+vec2(1,0)),f.x),mix(h2(i+vec2(0,1)),h2(i+vec2(1,1)),f.x),f.y);}
+ float wv(vec2 p){float t=uTime;return vn(p*120.+vec2(t*.6,t*.4))*.5+vn(p*260.-vec2(t*.9,-t*.5))*.3+vn(p*600.+vec2(-t*1.3,t))*.2;}
+ void main(){vec2 uv=vec2(vW.x/uSZ+.5,.5-vW.z/uSZ);float l=texture2D(uLake,uv).r;if(l<.03)discard;
+  float e=.0006;vec2 p=vW.xz;float hc=wv(p);float amp=.9*(1.-uIce);
+  vec3 n=normalize(vec3((hc-wv(p+vec2(e,0.)))*amp,1.,(hc-wv(p+vec2(0.,e)))*amp));
+  vec3 v=normalize(cameraPosition-vW);float fr=.02+.98*pow(1.-max(dot(n,v),0.),5.);vec3 r=reflect(-v,n);
+  vec3 skyc=mix(vec3(.62,.74,.84),vec3(.22,.42,.7),clamp(r.y*2.,0.,1.))*2.2;
+  vec3 base=mix(vec3(.30,.76,.70),vec3(.03,.50,.52),smoothstep(0.,.6,clamp(l*4.,0.,1.)))*(.75+.35*max(dot(n,uSun),0.))*2.2;
+  vec3 ice=mix(vec3(.75,.88,.95),vec3(.95,.97,1.),vn(p*300.))*2.2;base=mix(base,ice,uIce);
+  vec3 col=mix(base,skyc,fr*.6*(1.-uIce*.7));col+=vec3(1.,.95,.85)*(pow(max(dot(r,uSun),0.),400.)*3.+pow(max(dot(r,uSun),0.),40.)*.15)*(1.-uIce);
+  float d=length(cameraPosition-vW);col=mix(col,fogColor,1.-exp(-fogDensity*fogDensity*d*d));
+  gl_FragColor=vec4(col,smoothstep(.03,.12,l));
+  #include <tonemapping_fragment>
+  #include <encodings_fragment>
+ }`}));
+water.position.set(.035,Y(LAKE+.8),-.06);world.add(water);
+let level=LAKE+.8;
+
+/* trees: low-poly, 8×8 chunks with frustum + distance culling */
+const tf=[];for(let i=0;i<80000;i++){const a=i*8,b=a+4;tf.push([((trPx[a]*256+trPx[a+1])/65535-.5)*SZ,((trPx[b]*256+trPx[b+1])/65535-.5)*SZ,trPx[a+2]/255+.5])}
+function mergeGeos(list){let n=0;const g2=list.map(g=>g.toNonIndexed());g2.forEach(g=>n+=g.attributes.position.count);const P=new Float32Array(n*3),Nn=new Float32Array(n*3);let o=0;for(const g of g2){P.set(g.attributes.position.array,o*3);Nn.set(g.attributes.normal.array,o*3);o+=g.attributes.position.count}const r=new THREE.BufferGeometry();r.setAttribute('position',new THREE.BufferAttribute(P,3));r.setAttribute('normal',new THREE.BufferAttribute(Nn,3));return r}
+const tgeom=mergeGeos([[.42,.55,.36],[.3,.5,.62],[.17,.42,.88]].map(([r,h,y])=>new THREE.ConeGeometry(r,h,6,1,true).translate(0,y,0)));
+{const P=tgeom.attributes.position,C=new Float32Array(P.count*3);for(let i=0;i<P.count;i++){const y=P.getY(i),rr=Math.hypot(P.getX(i),P.getZ(i));const v=.42+.58*Math.min(1,y)*(.6+.4*Math.min(1,rr*3));C[i*3]=C[i*3+1]=C[i*3+2]=v}tgeom.setAttribute('color',new THREE.BufferAttribute(C,3))}
+const treeMat=new THREE.MeshLambertMaterial({vertexColors:true,side:THREE.DoubleSide});
+const CH=8,chunks=[];
+{const buckets=[...Array(CH*CH)].map(()=>[]);const maxT=lite?0:(slow?20000:60000);
+ for(let i=0;i<maxT;i++){const[x,z]=tf[i];const cx=Math.min(CH-1,Math.max(0,((x/SZ+.5)*CH)|0)),cz=Math.min(CH-1,Math.max(0,((z/SZ+.5)*CH)|0));buckets[cz*CH+cx].push(i)}
+ const m4=new THREE.Matrix4(),qq=new THREE.Quaternion(),sc=new THREE.Vector3(),ps=new THREE.Vector3(),cc=new THREE.Color(),ax=new THREE.Vector3(0,1,0);
+ buckets.forEach((b,k)=>{if(!b.length)return;const im=new THREE.InstancedMesh(tgeom,treeMat,b.length);let cxs=0,czs=0;
+  b.forEach((ti,j)=>{const[x,z,s]=tf[ti];const ht=.024*s;ps.set(x,Y(hAt(x,z))-.002,z);qq.setFromAxisAngle(ax,ti*2.39);sc.set(ht*.55,ht,ht*.55);m4.compose(ps,qq,sc);im.setMatrixAt(j,m4);cc.setHSL(.27+((ti*13)%7)/100,.22+((ti*7)%14)/100,.13+((ti*11)%8)/100);im.setColorAt(j,cc);cxs+=x;czs+=z});
+  const c=new THREE.Vector3(cxs/b.length,Y(hAt(cxs/b.length,czs/b.length)),czs/b.length);
+  im.userData.c=c;im.frustumCulled=false;world.add(im);chunks.push(im)});}
+let treeDist=lite?0:3.2;
+const frus=new THREE.Frustum(),pm=new THREE.Matrix4(),tmpS=new THREE.Sphere();
+function cullTrees(){pm.multiplyMatrices(cam.projectionMatrix,cam.matrixWorldInverse);frus.setFromProjectionMatrix(pm);
+ for(const c of chunks){tmpS.center.copy(c.userData.c).applyMatrix4(world.matrixWorld);tmpS.radius=SZ/CH*.75;const d=tmpS.center.distanceTo(cam.position);c.visible=treeDist>0&&d-tmpS.radius<treeDist&&frus.intersectsSphere(tmpS)}}
+
+/* clouds */
+const clouds=new THREE.Group();world.add(clouds);
+{const cv=document.createElement('canvas');cv.width=cv.height=128;const g=cv.getContext('2d');const img=g.createImageData(128,128);
+ for(let y=0;y<128;y++)for(let x=0;x<128;x++){const dx=(x-64)/64,dy=(y-64)/64,r=Math.hypot(dx,dy*1.6);let f=0,a=.5,fr=4;for(let k=0;k<4;k++){f+=a*vn(x/128*fr+3,y/128*fr+7);fr*=2;a*=.5}
+  const al=Math.max(0,Math.min(1,(f-.25)*1.8))*Math.max(0,1-r)**1.4;const i=(y*128+x)*4;const s=225+30*(1-dy)/2;img.data[i]=img.data[i+1]=s;img.data[i+2]=Math.min(255,s+8);img.data[i+3]=al*255}
+ g.putImageData(img,0,0);const ct=new THREE.CanvasTexture(cv);ct.encoding=THREE.sRGBEncoding;
+ for(let k=0;k<(lite?10:22);k++){const m=new THREE.SpriteMaterial({map:ct,transparent:true,depthWrite:false,opacity:.8,fog:true,color:new THREE.Color(2.3,2.3,2.4)});const sp=new THREE.Sprite(m);const w=1.6+((k*37)%10)/10*2.2;sp.scale.set(w,w*.45,1);
+  sp.userData={x:((k*53)%100)/100*12-6,z:((k*71)%100)/100*12-6,h:4250+((k*29)%10)*70,ph:k};clouds.add(sp)}}
+
+/* water flow particles: steepest-descent paths from high slopes into the lake */
+const paths=[];
+{const ix=x=>Math.round((x/SZ+.5)*(N-1)),fx=i=>(i/(N-1)-.5)*SZ;
+ for(let s=0;s<160&&paths.length<36;s++){const ang=(s*137.5)%360*Math.PI/180,rad=1.2+((s*61)%100)/100*3.6;let cx=ix(.035+Math.sin(ang)*rad),cz=ix(-.06+Math.cos(ang)*rad);
+  if(cx<1||cz<1||cx>N-2||cz>N-2||H[cz*N+cx]<3200)continue;const pts=[];let ok=false;
+  for(let st=0;st<1500;st++){pts.push([fx(cx),fx(cz)]);if(LK[cz*N+cx]){ok=true;break}let bh=H[cz*N+cx],bx=cx,bz=cz;
+   for(let dz=-1;dz<=1;dz++)for(let dx=-1;dx<=1;dx++){const nx=cx+dx,nz=cz+dz;if(nx<0||nz<0||nx>=N||nz>=N)continue;const h=H[nz*N+nx]-(dx&&dz?.0:0);if(h<bh){bh=h;bx=nx;bz=nz}}
+   if(bx===cx&&bz===cz)break;cx=bx;cz=bz}
+  if(ok&&pts.length>40)paths.push(pts.filter((_,i)=>i%2===0))}}
+const PPER=26,pc=paths.length*PPER;const pgeo=new THREE.BufferGeometry();const parr=new Float32Array(pc*3);pgeo.setAttribute('position',new THREE.BufferAttribute(parr,3));
+const pmat=new THREE.PointsMaterial({color:0x8fe8ff,size:.028,transparent:true,opacity:0,depthWrite:false,blending:THREE.AdditiveBlending});
+const flow=new THREE.Points(pgeo,pmat);flow.frustumCulled=false;world.add(flow);
+function updFlow(t){if(pmat.opacity<.01)return;let k=0;for(const p of paths){const L=p.length;for(let j=0;j<PPER;j++){const u=((t*.06+j/PPER)%1)*(L-1);const i0=u|0,f=u-i0,a=p[i0],b=p[Math.min(L-1,i0+1)];const x=a[0]+(b[0]-a[0])*f,z=a[1]+(b[1]-a[1])*f;parr[k++]=x;parr[k++]=Y(hAt(x,z))+.006;parr[k++]=z}}pgeo.attributes.position.needsUpdate=true}
+
+/* labels */
+const lakeC=[.035,-.06];
+function along(az,h){const a=az*Math.PI/180;for(let r=.2;r<5.2;r+=.02){const x=lakeC[0]+Math.sin(a)*r,z=lakeC[1]-Math.cos(a)*r;if(hAt(x,z)>=h)return[x,z]}return[lakeC[0]+Math.sin(a)*5,lakeC[1]-Math.cos(a)*5]}
+const LBL=[];
+function addL(x,z,t,grp,cls,dh){const el=document.createElement('div');el.className='lbl'+(cls?' '+cls:'');el.textContent=t;el.style.opacity=0;document.body.appendChild(el);LBL.push({v:new THREE.Vector3(x,Y(hAt(x,z)+(dh||0))+.02,z),el,grp,on:0})}
+addL(4.18,2.9,'Пик Советов · 4317 м','peak');addL(.03,-.05,'БАО · ≈2500 м','peak',0,40);addL(-.05,-.78,'Плотина','tour',0,6);addL(.25,.85,'р. Озёрная','water',0,25);
+[['Горный козёл',140,3500],['Ирбис (очень редок)',205,3400],['Серый сурок',250,3050],['Красная пищуха',100,3200],['Косуля',300,2650],['Куница, горностай',55,2750],['Бородач',170,3800,250],['Синяя птица',175,2560,10]].forEach(([n,az,h,dh])=>{const[x,z]=along(az,h);addL(x,z,n,'animal','an',dh||0)});
+[['ели',290,2700],['луга, арча',200,3150],['скалы, снег',140,3700]].forEach(([n,az,h])=>{const[x,z]=along(az,h);addL(x,z,n,'plant','an')});
+
+/* camera keyframes [x,height m,z] → [x,height,z] */
+const K={
+ hero:{p:[-2.7,3750,-3.9],t:[.3,2750,.6]},
+ intro:{p:[-1.55,3150,-1.9],t:[.25,2620,.35]},
+ climate:{p:[-1.3,4000,-5.2],t:[.6,3000,1.2]},
+ water:{p:[1.5,3350,-1.7],t:[.4,2900,2.0]},
+ soil:{p:[-.9,2760,-.6],t:[.6,2700,.4]},
+ plant:{p:[-3.2,3700,-3.0],t:[1.0,3050,1.8]},
+ animal:{p:[-2.2,3500,-2.6],t:[.8,3150,1.4]},
+ diag:{p:[0,7000,-3.5],t:[0,2600,.4]},
+ look:{p:[-2.8,3300,-3.6],t:[.6,3000,1.6]},
+ tour:{p:[-.25,2640,-1.35],t:[.15,2560,.7]},
+ eco:{p:[-.45,2580,-1.1],t:[.1,2540,-.2]},
+ end:{p:[3.6,4200,-4.2],t:[0,2800,.5]},
+ src:{p:[0,7500,-4],t:[0,2600,.4]}
+};
+const MODE={hero:{peak:1},intro:{peak:1},climate:{temp:1,peak:1,clouds:1},water:{snow:1,flow:1,water:1},soil:{},plant:{belts:1,plant:1},animal:{animal:1},diag:{dim:1},look:{peak:1},tour:{tour:1,peak:1},eco:{tour:1},end:{peak:1},src:{dim:1}};
+const kf=secs.map(s=>K[s.dataset.k]);
+const toV=a=>new THREE.Vector3(a[0],Y(a[1]),a[2]);
+const ease=t=>t<.5?4*t*t*t:1-(-2*t+2)**3/2;
+let yaw=0,pitch=0,mx=0,my=0,pmx=0,pmy=0,drag=null;
+renderer.domElement.addEventListener('pointerdown',e=>{drag={x:e.clientX,y:e.clientY,yaw,pitch};renderer.domElement.setPointerCapture(e.pointerId)});
+addEventListener('pointerup',()=>drag=null);
+addEventListener('pointermove',e=>{mx=e.clientX/innerWidth-.5;my=e.clientY/innerHeight-.5;if(drag){yaw=drag.yaw-(e.clientX-drag.x)*.006;pitch=Math.max(-.5,Math.min(.6,drag.pitch+(e.clientY-drag.y)*.004))}});
+let lastScroll=scrollY;
+const P=new THREE.Vector3(),T=new THREE.Vector3(),tmp=new THREE.Vector3();
+function camPose(){
+ const t=tops(),vh=innerHeight;let i=0;for(let k=0;k<t.length;k++)if(t[k]<=scrollY+1)i=k;
+ const a=kf[i],b=kf[Math.min(kf.length-1,i+1)];const nextTop=t[i+1]??t[i]+vh;
+ const p=b===a?0:Math.max(0,Math.min(1,(scrollY-(nextTop-vh))/vh));const e=ease(p);
+ P.copy(toV(a.p)).lerp(toV(b.p),e);T.copy(toV(a.t)).lerp(toV(b.t),e);
+}
+/* quality control */
+function setLiteImpl(v){lite=v;try{localStorage.setItem('bao-lite',v?'1':'0')}catch(e){}
+ dpr=v?.75:Math.min(DPRMAX,1.25);renderer.setPixelRatio(dpr);resize();treeDist=v?0:3.2;clouds.visible=true;buildOuter(v?90:150);
+ q('#liteBtn').classList.toggle('act',v);q('#liteBtn').textContent=v?'Лёгкая графика: вкл':'Лёгкая графика';}
+setLite=v=>{setLiteImpl(v);showToast(v?'Лёгкая графика включена':'Полная графика')};
+q('#liteBtn').onclick=()=>setLite(!lite);q('#liteBtn').classList.toggle('act',lite);if(lite)q('#liteBtn').textContent='Лёгкая графика: вкл';
+if(lite&&chunks.length===0)treeDist=0;
+
+function resize(){const w=innerWidth,h=innerHeight;renderer.setSize(w,h,false);cam.aspect=w/h;cam.fov=w<h?62:50;if(w>900)cam.setViewOffset(w,h,-w*.2,0,w,h);else cam.clearViewOffset();cam.updateProjectionMatrix()}
+addEventListener('resize',resize);resize();
+
+const cur={belts:0,temp:0,snow:0,dim:0,flow:0,ice:0};
+let ft=0,fc=0,lastT=performance.now(),tAcc=0;
+const clk=new THREE.Clock();
+let panelR=0;
+function frame(){
+ requestAnimationFrame(frame);
+ {const pn=secs[active].querySelector('.panel');panelR=pn&&innerWidth>900&&!document.body.classList.contains('free')?pn.getBoundingClientRect().right:0;}
+ const now=performance.now(),dt=Math.min(.1,(now-lastT)/1000);lastT=now;tAcc+=dt;
+ /* adaptive resolution */
+ ft+=dt;fc++;if(fc>=60){const avg=ft/fc;ft=0;fc=0;
+  if(avg>.028&&dpr>.6){dpr=Math.max(.6,dpr-.15);renderer.setPixelRatio(dpr);resize()}
+  else if(avg>.034&&treeDist>1.6){treeDist-=.6}
+  else if(avg<.015&&!lite&&dpr<Math.min(DPRMAX,1.25)){dpr=Math.min(DPRMAX,1.25,dpr+.1);renderer.setPixelRatio(dpr);resize()}}
+ const key=secs[active].dataset.k,m=MODE[key]||{};
+ const tg={belts:m.belts?1:0,temp:m.temp?1:0,snow:m.snow?SNOW[month]:0,dim:m.dim?1:0,flow:m.flow?FLOW[month]:0,ice:m.water?ICE[month]:0};
+ const k=1-Math.exp(-dt*3);for(const n in cur)cur[n]+=(tg[n]-cur[n])*k;
+ U.uBelts.value=cur.belts;U.uTemp.value=cur.temp;U.uSnow.value=cur.snow;U.uDim.value=cur.dim;WU.uIce.value=cur.ice;pmat.opacity=cur.flow*.9;
+ const lv=m.water?LEV[month]:LAKE+.8;level+=(lv-level)*k;water.position.y=Y(level);
+ WU.uTime.value=tAcc;
+ /* clouds: rising along the slope in climate slide */
+ const cl=m.clouds?1:0;
+ clouds.children.forEach((c,i)=>{const u=c.userData;let z=u.z,h=u.h;if(cl){const s=((tAcc*.05+u.ph*.13)%1);z=-4+s*8;h=2900+s*1700;c.material.opacity=.55*Math.sin(s*Math.PI);c.position.set(1+((u.ph*37)%10)/10*3.5,Y(h),z);return}else{z=u.z+Math.sin(tAcc*.03+u.ph)*.3;c.material.opacity=.75}c.position.set(u.x,Y(h),z)});
+ /* camera */
+ if(Math.abs(scrollY-lastScroll)>2){yaw*=.9;pitch*=.9}lastScroll=scrollY;
+ camPose();
+ pmx+=(mx-pmx)*.05;pmy+=(my-pmy)*.05;
+ tmp.copy(P).sub(T);const r=tmp.length();let az=Math.atan2(tmp.x,tmp.z)+yaw+pmx*.08,el=Math.asin(Math.max(-1,Math.min(1,tmp.y/r)))+pitch-pmy*.04;el=Math.max(.02,Math.min(1.45,el));
+ cam.position.set(T.x+Math.sin(az)*Math.cos(el)*r,T.y+Math.sin(el)*r,T.z+Math.cos(az)*Math.cos(el)*r);
+ const g=Y(hAt(cam.position.x,cam.position.z))+.02;if(Math.abs(cam.position.x)<SZ/2&&Math.abs(cam.position.z)<SZ/2&&cam.position.y<g)cam.position.y=g;
+ cam.lookAt(T);cam.updateMatrixWorld();
+ cullTrees();updFlow(tAcc);
+ renderer.render(scene,cam);
+ /* labels */
+ const w=innerWidth,h=innerHeight;
+ for(const l of LBL){const want=(m[l.grp]?1:0)*(document.body.classList.contains('free')?0:1);l.on+=(want-l.on)*k;
+  if(l.on<.02){l.el.style.opacity=0;continue}
+  tmp.copy(l.v).project(cam);const sx=(tmp.x+1)/2*w;const vis=tmp.z<1&&Math.abs(tmp.x)<1.05&&Math.abs(tmp.y)<1.05&&sx>panelR+60;
+  l.el.style.opacity=vis?l.on:0;if(vis)l.el.style.transform=`translate(${Math.min(w-110,sx)}px,${(1-tmp.y)/2*h}px) translate(-50%,calc(-100% - 16px))`}
+}
+frame();
+const ld=q('#load');ld.style.opacity=0;setTimeout(()=>ld.remove(),900);
+}
+
+/* ---------- scroll handler (DOM side) ---------- */
+function onScroll(){
+ const i=curSlide();if(i!==active||!secs[i].classList.contains('on')){secs.forEach((s,k)=>s.classList.toggle('on',k===i));active=i;
+  if(secs[i].dataset.k==='end'&&!q('#scen').children.length)setSc(0)}
+ dots.forEach((d,k)=>d.classList.toggle('act',k===i));
+ q('#bar').style.width=(scrollY/(document.documentElement.scrollHeight-innerHeight)*100)+'%';
+ const k=secs[i].dataset.k;q('#shade').style.opacity=(k==='diag'||k==='src')?0:1;
+ const top=diagSec.offsetTop,span=diagSec.offsetHeight-innerHeight;setDiag(Math.max(0,Math.min(1,(scrollY-top)/span)));
+}
+addEventListener('scroll',onScroll,{passive:true});onScroll();
+}
+</script>
+</body>
+</html>
